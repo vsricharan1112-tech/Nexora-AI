@@ -10,6 +10,7 @@ Nexora is a student planning and opportunity web app served by the small Node se
 - Study rooms and mentor applications use the server. Rooms are temporary in-memory sessions. Mentor applications and approvals currently use the server's data directory.
 - NEXA's server route calls the Gemini API when `GEMINI_API_KEY` is configured. The free tier has quotas and Google says free-tier content may be used to improve its products; NEXA does not send data to Gemini unless its owner configures a key and a user submits a prompt.
 - Optional email/password accounts and cross-device workspace sync are implemented with Supabase Auth and the private table defined in `supabase-schema.sql`.
+- A plain-language privacy, retention, support, and abuse-reporting notice is linked from the app. The issue tracker is public, so users are told not to include personal or account information.
 
 ## Enable accounts and cloud sync
 
@@ -27,6 +28,6 @@ Create a free-tier key in Google AI Studio and add `GEMINI_API_KEY` as a **secre
 
 This project is deployed as a free Render web service. Free instances can sleep while idle, wake slowly, restart, and lose files stored on the service. A successful health check does not mean the app can never crash. The free deployment is a public pilot, not an uptime or data-retention guarantee.
 
-Before relying on it for real users, add persistent storage for mentor applications, approved mentors, and room state; configure a non-free always-on web service and durable database with backups; configure production email; and review the privacy, abuse-reporting, moderation, and student-data policies. Never publish real mentor contact details without their consent.
+Before relying on it for real users, add persistent storage for mentor applications, approved mentors, and room state; configure a non-free always-on web service and durable database with backups; configure production email; set up a private support channel and moderation process; and review the student-data policy for the intended audience. Never publish real mentor contact details without their consent.
 
 The public resource links are deliberately outbound links rather than scraped feeds: scholarship awards, offers, and workshops change, and eligibility must be checked with the awarding organization. NEXA sends prompts to Gemini only after the owner configures `GEMINI_API_KEY`; answers do not include web search or citations.

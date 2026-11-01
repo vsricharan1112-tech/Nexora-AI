@@ -262,6 +262,7 @@ const server = http.createServer(async (req, res) => {
     const staticAssets = new Map([
       ['/nexora-account.js', { file: path.join(ROOT, 'nexora-account.js'), type: 'text/javascript; charset=utf-8' }],
       ['/nexora-account.css', { file: path.join(ROOT, 'nexora-account.css'), type: 'text/css; charset=utf-8' }],
+      ['/privacy.html', { file: path.join(ROOT, 'privacy.html'), type: 'text/html; charset=utf-8' }],
       ['/nexora-ai-assets/Nexora-Daily-Habit-Tracker.xlsx', { file: path.join(ROOT, 'nexora-ai-assets', 'Nexora-Daily-Habit-Tracker.xlsx'), type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }],
       ['/nexora-ai-assets/Nexora-AI-5-Slide-Deck.pptx', { file: path.join(ROOT, 'nexora-ai-assets', 'Nexora-AI-5-Slide-Deck.pptx'), type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' }]
     ]);

@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#12101a">
+  <title>Privacy, data and support · Nexora AI</title>
+  <style>
+    :root{color-scheme:dark;--bg:#100e16;--card:#1b1724;--line:#393044;--text:#f4eff9;--muted:#c7bdce;--accent:#c4a4f5}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 80% 0,#382455 0,transparent 35%),var(--bg);color:var(--text);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+    main{width:min(850px,calc(100% - 32px));margin:40px auto 72px}.brand{color:var(--accent);font-weight:750;letter-spacing:.12em;text-transform:uppercase;font-size:.8rem}
+    h1{font-size:clamp(2rem,6vw,3.4rem);line-height:1.1;margin:.5rem 0 1rem}h2{font-size:1.3rem;margin:2rem 0 .5rem}p,li{color:var(--muted)}a{color:#d6bdff}a:focus-visible{outline:3px solid #fff;outline-offset:3px}
+    .intro,.notice,section{background:color-mix(in srgb,var(--card) 92%,transparent);border:1px solid var(--line);border-radius:18px;padding:20px;margin:16px 0}
+    .notice{border-color:#735b35;background:#2b2419;color:#f7e3bb}.notice p{color:#f2dfbd}.back{display:inline-block;margin-bottom:20px;text-decoration:none}
+    code{color:#e6d4ff;overflow-wrap:anywhere}footer{border-top:1px solid var(--line);margin-top:32px;padding-top:16px;color:var(--muted);font-size:.9rem}
+  </style>
+</head>
+<body>
+<main>
+  <a class="back" href="./">← Back to Nexora</a>
+  <div class="brand">Nexora AI · Student opportunity space</div>
+  <h1>Privacy, data and support</h1>
+  <div class="intro"><p>This plain-language notice describes the current Nexora pilot. Some online services are optional and remain unavailable until the site owner configures them. Nexora is an early-stage project; this page is not a promise of uninterrupted service or a legal-compliance certification.</p></div>
+  <div class="notice"><strong>Check the feature status first.</strong><p>If the account button says “Accounts setup needed,” email sign-up and cloud sync are not connected. NEXA AI is also off until the owner configures its Gemini key. Do not enter sensitive personal, financial, health, school-record, or account information into the app.</p></div>
+
+  <section>
+    <h2>What Nexora saves in this browser</h2>
+    <p>Planner tasks, habits, roadmap choices, profile fields, saved resources, mistake-review notes and images, and NEXA chat history are saved in your browser storage. They stay on this device unless you use account sync or send information to an online feature. They may be removed if you clear this site’s browser data or use another browser/device.</p>
+  </section>
+
+  <section>
+    <h2>Accounts and cloud workspace</h2>
+    <p>When enabled, Supabase handles email/password authentication. Nexora does not receive or store your password. After sign-in, Nexora syncs a snapshot of your workspace to a private account row protected by Supabase row-level security. The account service and its email provider process your email address for sign-in, verification, and password recovery.</p>
+    <p>The current app does not include a self-service account deletion button. For a cloud-data deletion request, use the support route below and ask for a private way to verify the account. Never put your email, password, recovery link, or workspace contents in a public issue.</p>
+  </section>
+
+  <section>
+    <h2>NEXA AI</h2>
+    <p>NEXA is disabled unless the site owner configures a Gemini API key. When enabled and you submit a prompt, Nexora sends up to the latest 12 chat messages to Google Gemini to generate a reply. Google’s free-tier terms and data practices apply; Google says content submitted on the unpaid tier may be used to improve its products. Avoid personal or confidential information. <a href="https://ai.google.dev/gemini-api/docs/pricing" target="_blank" rel="noopener noreferrer">Read Google’s Gemini pricing and data-use details ↗</a></p>
+    <p>Chat history is also kept in your browser and may be included in your account workspace sync. Gemini responses can be wrong or outdated; verify important education, scholarship, and application details with official sources.</p>
+  </section>
+
+  <section>
+    <h2>Study rooms, mentorship and external links</h2>
+    <p>Study-room nicknames and messages are visible to people in that room. Room presence and chat are temporary server memory and can disappear when the service restarts. Do not share contact details there.</p>
+    <p>Mentor applications and requests contain the details you submit. The pilot currently stores these records in the web service’s local data directory, which may be lost on a restart or redeploy; do not use it for sensitive records or rely on it as a permanent inbox. An approved mentor profile may show the contact details selected for publication.</p>
+    <p>Learn, scholarship, offer, and workshop links open third-party websites. Those sites have their own privacy, eligibility, and content rules. Nexora does not automatically import or verify every listing.</p>
+  </section>
+
+  <section>
+    <h2>Retention and deletion</h2>
+    <ul>
+      <li>Browser data remains until you remove it from the browser or the app replaces it.</li>
+      <li>If cloud accounts are enabled, a synced workspace remains in your account row until it is deleted. There is no self-service cloud deletion control in this pilot.</li>
+      <li>Room data is temporary. Mentor application files have no reliable retention schedule or backup in this pilot.</li>
+      <li>Third-party services retain information under their own terms and settings.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Support and abuse reports</h2>
+    <p>For bugs, accessibility issues, or abuse reports, use the <a href="https://github.com/vsricharan1112-tech/Nexora-AI/issues" target="_blank" rel="noopener noreferrer">Nexora GitHub issue tracker ↗</a>. GitHub issues are public. Do not post names, email addresses, passwords, reset links, private messages, school records, or screenshots containing personal details. For a private account or data request, post only a general request for a private contact method; do not identify your account publicly.</p>
+    <p>This pilot has no dedicated private support inbox or guaranteed response time. If there is an immediate safety risk, contact an appropriate trusted person or local service instead of relying on this app.</p>
+  </section>
+
+  <footer>Last updated: November 1, 2026. This notice describes the published pilot build and may change as the service is configured.</footer>
+</main>
+</body>
+</html>

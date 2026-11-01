@@ -139,7 +139,7 @@ test('the public homepage and required account/static assets are served', async 
   assert.match(html, /window\.NEXORA_CONFIG=/);
   assert.match(html, /nexora-account\.js/);
 
-  for (const [url, type] of [['/nexora-account.js', /javascript/], ['/nexora-account.css', /text\/css/]]) {
+  for (const [url, type] of [['/nexora-account.js', /javascript/], ['/nexora-account.css', /text\/css/], ['/privacy.html', /text\/html/]]) {
     const asset = await fetch(`${base}${url}`);
     assert.equal(asset.status, 200, `${url} is served`);
     assert.match(asset.headers.get('content-type'), type);
