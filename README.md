@@ -1,33 +1,30 @@
 # Nexora AI
 
-Nexora is a student planning and opportunity web app served by the small Node server in `nexora-server.cjs`. The hosted pilot is https://nexora-ai-1ocm.onrender.com.
+Nexora is a student planning and learning web app. The public deployment is at <https://nexora-ai-1ocm.onrender.com>.
 
-## Features that work in the current app
+## Working features
 
-- Study dashboard, task planner, habit tracker, progress view, roadmap, ranking scenarios, option comparison, profile, saved reading list, and mistake review save in the current browser.
-- Learn links open live sources including Khan Academy, NPTEL, MIT OpenCourseWare, SWAYAM, YouTube, and web search.
-- Scholarship, student-offer, and workshop pages link to official or current listing/search pages. Nexora does not ingest or verify those sites' listings automatically; check eligibility, deadlines, and terms on the source site.
-- Study rooms and mentor applications use the server. Rooms are temporary in-memory sessions. Mentor applications and approvals currently use the server's data directory.
-- NEXA's server route calls the Gemini API when `GEMINI_API_KEY` is configured. The free tier has quotas and Google says free-tier content may be used to improve its products; NEXA does not send data to Gemini unless its owner configures a key and a user submits a prompt.
-- Optional email/password accounts and cross-device workspace sync are implemented with Supabase Auth and the private table defined in `supabase-schema.sql`.
-- A plain-language privacy, retention, support, and abuse-reporting notice is linked from the app. The issue tracker is public, so users are told not to include personal or account information.
+- Study dashboard, planner, habit tracker, progress view, roadmap, ranking scenarios, option comparison, profile, saved reading list, and mistake review. Most of this workspace is stored in the current browser; signed-in users can sync supported workspace data through Supabase.
+- Learn resources link to Khan Academy, NPTEL, MIT OpenCourseWare, SWAYAM, YouTube, and search pages. Scholarship, offer, and workshop pages link to official portals and search results. These are outbound links, not complete live feeds, and users must confirm deadlines and eligibility with the source.
+- Study rooms and mentor submissions use Supabase tables with row-level security when the hosted Supabase connection is configured. Rooms require a signed-in account. Presence expires after 25 seconds offline; messages older than seven days are removed when that room is polled. Pending mentor applications are private. An administrator must approve a profile before it appears publicly.
+- Email/password accounts and workspace sync are implemented with Supabase Auth. The hosted service has the public Supabase URL and publishable key. Public sign-up is not ready until the owner configures the auth site/redirect URLs and production SMTP in Supabase, then tests email verification and password recovery.
+- NEXA calls Google Gemini from the server only when `GEMINI_API_KEY` is present. It is currently off if that secret is absent. The free tier has quotas and Google may use unpaid-tier content to improve its products. NEXA does not do web search or provide citations; use the Explore links to verify answers.
+- `privacy.html` describes browser data, cloud features, AI data use, retention, support, and external links.
 
-## Enable accounts and cloud sync
+## Supabase setup already applied
 
-1. The Supabase project is `ourtukxcjmisguxviulg`; its private workspace table and the hosted site/redirect URLs are configured. On the Free plan, Supabase may pause a project after a week of low activity; do not promise continuous production availability from a free project.
-2. In the Supabase SQL Editor, run all of `supabase-schema.sql`. Its row-level security policies limit each account to its own workspace row.
-3. Set `SUPABASE_URL` and `SUPABASE_ANON_KEY` in the Render service environment. `render.yaml` has the project URL and prompts for the publishable key without storing it in Git. The publishable key is designed for browser use and is restricted by row-level policies; never use the secret/service-role key in the browser.
-4. In Supabase Authentication settings, allow the hosted website URL for site and redirect URLs. Email verification and password reset rely on Supabase email delivery; configure a reliable SMTP sender before inviting real users.
-5. Redeploy. The cloud button should show `Sign in`; create an account, verify the email if requested, and sign in. Existing browser data is copied to the account on first sign-in. Later changes sync automatically. Large images may remain only on the device.
+The project is `ourtukxcjmisguxviulg`. `supabase-schema.sql` defines private workspace sync; `supabase-public-features.sql` defines room and mentorship data with row-level security. The latter is applied to the connected project. The Render service needs `SUPABASE_URL` and `SUPABASE_ANON_KEY`; never put a service-role key in the browser or repository.
 
-## Enable live NEXA AI
+For the public email flow, set Supabase Site URL to `https://nexora-ai-1ocm.onrender.com`, allow `https://nexora-ai-1ocm.onrender.com/**`, and configure a custom SMTP provider in Supabase Authentication. The default sender is restricted and is not suitable for public sign-up. Test sign-up, verification, sign-in, password reset, and cross-device sync before inviting users.
 
-Create a free-tier key in Google AI Studio and add `GEMINI_API_KEY` as a **secret environment variable** in Render, never in HTML, GitHub, or a message. Keep Google Cloud billing disabled to avoid paid usage. Google currently lists `gemini-2.5-flash-lite` as free of charge for standard input/output; quotas can be exhausted, and Google may use free-tier content to improve its products. After redeploy, `/api/health` should show `aiConfigured: true`; test a question in NEXA. Answers do not include web citations.
+To enable the admin review panel, first create and verify the owner's account. A project owner must then set `nexora_admin: true` in that user's **app metadata** (never user metadata) using a trusted Supabase admin process. This server checks the signed-in user's trusted app metadata and database RLS. Do not expose a service-role key to the app.
 
-## Host limits and launch status
+## Enable live NEXA
 
-This project is deployed as a free Render web service. Free instances can sleep while idle, wake slowly, restart, and lose files stored on the service. A successful health check does not mean the app can never crash. The free deployment is a public pilot, not an uptime or data-retention guarantee.
+Create a Gemini API key in Google AI Studio and store it privately in Render as `GEMINI_API_KEY`, then redeploy. Do not put the key in HTML, GitHub, or chat. Keep billing disabled if only free use is intended; quotas can still be exhausted. Check `/api/health` for `aiConfigured: true` and try a real question.
 
-Before relying on it for real users, add persistent storage for mentor applications, approved mentors, and room state; configure a non-free always-on web service and durable database with backups; configure production email; set up a private support channel and moderation process; and review the student-data policy for the intended audience. Never publish real mentor contact details without their consent.
+## Hosting and launch limits
 
-The public resource links are deliberately outbound links rather than scraped feeds: scholarship awards, offers, and workshops change, and eligibility must be checked with the awarding organization. NEXA sends prompts to Gemini only after the owner configures `GEMINI_API_KEY`; answers do not include web search or citations.
+Render's free web service can sleep while idle and take time to wake. Free services do not promise continuous availability. Supabase's free plan also has limits and may pause projects after extended inactivity. A health check or passing automated tests cannot guarantee that a service will never fail.
+
+Before inviting the public, finish production SMTP and a real-account test, add the Gemini key if AI is part of the launch promise, create the owner admin claim, test moderation and room flows with real accounts, and publish a private support contact plus clear deletion/retention procedures. The GitHub issue tracker is public and must not receive personal or account information. Review all external links and source listings regularly.

@@ -20,8 +20,8 @@
   <a class="back" href="./">← Back to Nexora</a>
   <div class="brand">Nexora AI · Student opportunity space</div>
   <h1>Privacy, data and support</h1>
-  <div class="intro"><p>This plain-language notice describes the current Nexora pilot. Some online services are optional and remain unavailable until the site owner configures them. Nexora is an early-stage project; this page is not a promise of uninterrupted service or a legal-compliance certification.</p></div>
-  <div class="notice"><strong>Check the feature status first.</strong><p>If the account button says “Accounts setup needed,” email sign-up and cloud sync are not connected. NEXA AI is also off until the owner configures its Gemini key. Do not enter sensitive personal, financial, health, school-record, or account information into the app.</p></div>
+  <div class="intro"><p>This notice describes the current Nexora deployment. Some features depend on services and credentials that the site owner must configure. Nexora is an early-stage project; this page is not a promise of uninterrupted service or a legal-compliance certification.</p></div>
+  <div class="notice"><strong>Check feature status first.</strong><p>Email sign-up and password recovery require production email delivery to be configured. NEXA AI works only when the owner has configured its Gemini key. Do not enter sensitive personal, financial, health, school-record, or account information into the app.</p></div>
 
   <section>
     <h2>What Nexora saves in this browser</h2>
@@ -30,7 +30,7 @@
 
   <section>
     <h2>Accounts and cloud workspace</h2>
-    <p>When enabled, Supabase handles email/password authentication. Nexora does not receive or store your password. After sign-in, Nexora syncs a snapshot of your workspace to a private account row protected by Supabase row-level security. The account service and its email provider process your email address for sign-in, verification, and password recovery.</p>
+    <p>Supabase handles email/password authentication; Nexora does not receive or store your password. After sign-in, Nexora syncs a snapshot of supported workspace data to a private account row protected by Supabase row-level security. Supabase and its configured email provider process your email address for sign-in, verification, and password recovery. Public sign-up and recovery require the site owner to configure production email delivery.</p>
     <p>The current app does not include a self-service account deletion button. For a cloud-data deletion request, use the support route below and ask for a private way to verify the account. Never put your email, password, recovery link, or workspace contents in a public issue.</p>
   </section>
 
@@ -42,8 +42,8 @@
 
   <section>
     <h2>Study rooms, mentorship and external links</h2>
-    <p>Study-room nicknames and messages are visible to people in that room. Room presence and chat are temporary server memory and can disappear when the service restarts. Do not share contact details there.</p>
-    <p>Mentor applications and requests contain the details you submit. The pilot currently stores these records in the web service’s local data directory, which may be lost on a restart or redeploy; do not use it for sensitive records or rely on it as a permanent inbox. An approved mentor profile may show the contact details selected for publication.</p>
+    <p>Study-room nicknames and messages are visible to people in that room and stored in Supabase. Presence expires after 25 seconds offline. Messages older than seven days are removed when the room is polled; avoid sharing contact details or anything private in room chat.</p>
+    <p>Mentor applications and contact requests are stored in Supabase. Pending applications are private to the applicant and project administrators; approved profiles may show an email address only if the applicant selected public contact. Nexora records contact requests but does not send email on a user's behalf. Do not rely on the app as a private message service.</p>
     <p>Learn, scholarship, offer, and workshop links open third-party websites. Those sites have their own privacy, eligibility, and content rules. Nexora does not automatically import or verify every listing.</p>
   </section>
 
@@ -52,7 +52,8 @@
     <ul>
       <li>Browser data remains until you remove it from the browser or the app replaces it.</li>
       <li>If cloud accounts are enabled, a synced workspace remains in your account row until it is deleted. There is no self-service cloud deletion control in this pilot.</li>
-      <li>Room data is temporary. Mentor application files have no reliable retention schedule or backup in this pilot.</li>
+      <li>Room messages older than seven days are removed when a room is polled. Room membership and presence are removed when a participant leaves or their session expires.</li>
+      <li>Mentor applications, approved profiles, and contact requests remain until an administrator removes or updates them. Deleting an account removes that user's linked records, but Nexora has no self-service account deletion control.</li>
       <li>Third-party services retain information under their own terms and settings.</li>
     </ul>
   </section>

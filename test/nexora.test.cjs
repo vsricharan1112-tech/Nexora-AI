@@ -15,7 +15,7 @@ async function close(server) {
   await new Promise(resolve => server.close(resolve));
 }
 
-async function startServer({ geminiKey = '', mockGemini = false } = {}) {
+async function startServer({ geminiKey = '', mockGemini = false, supabaseUrl = '', supabaseAnonKey = '' } = {}) {
   const probe = http.createServer();
   await new Promise(resolve => probe.listen(0, '127.0.0.1', resolve));
   const port = probe.address().port;
@@ -32,8 +32,8 @@ async function startServer({ geminiKey = '', mockGemini = false } = {}) {
       NEXORA_DATA_DIR: path.join(temp, 'data'),
       NEXORA_DISABLE_DOTENV: '1',
       GEMINI_API_KEY: geminiKey,
-      SUPABASE_URL: '',
-      SUPABASE_ANON_KEY: '',
+      SUPABASE_URL: supabaseUrl,
+      SUPABASE_ANON_KEY: supabaseAnonKey,
       NEXORA_ADMIN_TOKEN: 'test-only-admin-token'
     },
     stdio: 'ignore'
@@ -138,6 +138,10 @@ test('the public homepage and required account/static assets are served', async 
   assert.match(home.headers.get('content-type'), /text\/html/);
   assert.match(html, /window\.NEXORA_CONFIG=/);
   assert.match(html, /nexora-account\.js/);
+
+  const accountClient = await fetch(`${base}/nexora-account.js`);
+  const accountScript = await accountClient.text();
+  assert.match(accountScript, /signup\?redirect_to=/, 'new accounts return to the hosted Nexora page for email verification');
 
   for (const [url, type] of [['/nexora-account.js', /javascript/], ['/nexora-account.css', /text\/css/], ['/privacy.html', /text\/html/]]) {
     const asset = await fetch(`${base}${url}`);
@@ -247,5 +251,86 @@ test('invalid JSON, missing routes, unsupported methods and private admin data f
 
   const unsupported = await fetch(`${base}/`, { method: 'POST' });
   assert.equal(unsupported.status, 405);
+});
+
+test('Supabase mode uses per-user bearer tokens and fails closed without sign-in', async () => {
+  await stopServer();
+  const authTokens = new Map();
+  const calls = [];
+  const jwt = (sub, admin = false) => {
+    const token = `test.${Buffer.from(JSON.stringify({ sub })).toString('base64url')}.signature`;
+    authTokens.set(token, { id: sub, app_metadata: admin ? { nexora_admin: true } : {} });
+    return token;
+  };
+  const studentId = '0c31d835-4b64-41b7-bdd6-94164dcd2267';
+  const adminId = '60d7957f-1956-4d52-b4d6-66c43088ac7a';
+  const studentToken = jwt(studentId);
+  const adminToken = jwt(adminId, true);
+  const provider = http.createServer(async (req, res) => {
+    const chunks = [];
+    for await (const chunk of req) chunks.push(chunk);
+    const body = Buffer.concat(chunks).toString('utf8');
+    const url = new URL(req.url, 'http://127.0.0.1');
+    const bearer = (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+    calls.push({ path: url.pathname, method: req.method, bearer, apikey: req.headers.apikey, body });
+    const send = (status, value = '') => {
+      res.writeHead(status, { 'Content-Type': 'application/json' });
+      res.end(typeof value === 'string' ? value : JSON.stringify(value));
+    };
+    if (url.pathname === '/auth/v1/user') {
+      const user = authTokens.get(bearer);
+      return user ? send(200, user) : send(401, { message: 'Invalid token' });
+    }
+    if (bearer !== studentToken && bearer !== adminToken && bearer !== 'test-publishable-key') return send(401, { message: 'Invalid bearer' });
+    if (url.pathname === '/rest/v1/nexora_mentors' && req.method === 'GET') return send(200, []);
+    if (url.pathname === '/rest/v1/nexora_room_members' && req.method === 'POST') return send(201);
+    if (url.pathname === '/rest/v1/nexora_room_presence' && req.method === 'POST') return send(201);
+    if (url.pathname === '/rest/v1/nexora_room_presence' && req.method === 'GET') return send(200, []);
+    if (url.pathname === '/rest/v1/nexora_mentor_applications' && req.method === 'POST') return send(201);
+    if (url.pathname === '/rest/v1/nexora_mentor_applications' && req.method === 'GET') return send(200, []);
+    return send(404, { message: `Unexpected fake Supabase request: ${req.method} ${url.pathname}` });
+  });
+  await new Promise(resolve => provider.listen(0, '127.0.0.1', resolve));
+  const supabaseUrl = `http://127.0.0.1:${provider.address().port}`;
+  try {
+    await startServer({ supabaseUrl, supabaseAnonKey: 'test-publishable-key' });
+    const health = await jsonRequest('/api/health');
+    assert.equal(health.value.accountsConfigured, true);
+    assert.equal(health.value.rooms, 'supabase-rls-persisted');
+
+    const mentors = await jsonRequest('/api/mentors');
+    assert.equal(mentors.response.status, 200);
+    assert.ok(calls.some(call => call.path === '/rest/v1/nexora_mentors' && call.apikey === 'test-publishable-key'));
+
+    for (const route of ['/api/rooms/test-room/join', '/api/mentors/apply', '/api/mentorship/request']) {
+      const denied = await jsonRequest(route, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      assert.equal(denied.response.status, 401, `${route} requires an account`);
+    }
+    const adminDenied = await jsonRequest('/api/admin/mentor-applications');
+    assert.equal(adminDenied.response.status, 403);
+    const studentAdminDenied = await jsonRequest('/api/admin/mentor-applications', { headers: { Authorization: `Bearer ${studentToken}` } });
+    assert.equal(studentAdminDenied.response.status, 403, 'a signed-in student without the trusted admin claim cannot review data');
+
+    const join = await jsonRequest('/api/rooms/test-room/join', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${studentToken}` },
+      body: JSON.stringify({ id: 'testStudent_01', name: 'Cloud Student' })
+    });
+    assert.equal(join.response.status, 200);
+    assert.ok(calls.some(call => call.path === '/rest/v1/nexora_room_members' && call.bearer === studentToken));
+
+    const application = await jsonRequest('/api/mentors/apply', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${studentToken}` },
+      body: JSON.stringify({ name: 'Cloud Student', email: 'cloud@example.invalid', institution: 'Test College', year: '1st year', topics: 'Math', bio: 'Test profile.', availability: 'Weekends', publicContact: true })
+    });
+    assert.equal(application.response.status, 201);
+    assert.ok(calls.some(call => call.path === '/rest/v1/nexora_mentor_applications' && call.method === 'POST' && call.bearer === studentToken));
+
+    const adminReview = await jsonRequest('/api/admin/mentor-applications', { headers: { Authorization: `Bearer ${adminToken}` } });
+    assert.equal(adminReview.response.status, 200);
+    assert.ok(calls.some(call => call.path === '/rest/v1/nexora_mentor_applications' && call.method === 'GET' && call.bearer === adminToken));
+  } finally {
+    await stopServer();
+    await close(provider);
+  }
 });
 });

@@ -11,7 +11,7 @@
 
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const readSession = () => { try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null'); } catch { return null; } };
-  const writeSession = value => { session = value; try { if (value) sessionStorage.setItem(SESSION_KEY, JSON.stringify(value)); else sessionStorage.removeItem(SESSION_KEY); } catch {} updateAccountButton(); };
+  const writeSession = value => { session = value; try { if (value) sessionStorage.setItem(SESSION_KEY, JSON.stringify(value)); else sessionStorage.removeItem(SESSION_KEY); } catch {} updateAccountButton(); window.dispatchEvent(new Event('nexora-auth-change')); };
   session = readSession();
 
   function addStyles() {
@@ -154,6 +154,19 @@
     const updated = await authRequest('token?grant_type=refresh_token', { refresh_token: session.refresh_token });
     writeSession(updated); return updated.access_token;
   }
+
+  window.NEXORA_ACCOUNT = Object.freeze({
+    async getAccessToken() {
+      if (!session?.access_token) return '';
+      const expiresAt = Number(session.expires_at || 0) * 1000;
+      if (expiresAt && expiresAt < Date.now() + 60000) {
+        try { await refreshSession(); } catch { writeSession(null); return ''; }
+      }
+      return session?.access_token || '';
+    },
+    getUserId: () => session?.user?.id || '',
+    isAdmin: () => session?.user?.app_metadata?.nexora_admin === true
+  });
 
   async function finishPasswordRecovery() {
     if (!hasCloud) return false;
