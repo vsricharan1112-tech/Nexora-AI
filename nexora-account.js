@@ -120,7 +120,8 @@
         setMode('account'); setNotice('Password updated. You are signed in.', 'success');
         return;
       }
-      const result = await authRequest(mode === 'login' ? 'token?grant_type=password' : 'signup', { email, password });
+      const authPath = mode === 'login' ? 'token?grant_type=password' : `signup?redirect_to=${encodeURIComponent(location.origin + location.pathname)}`;
+      const result = await authRequest(authPath, { email, password });
       if (!result.access_token) {
         setNotice('Check your email for the verification link, then return here and sign in.', 'success');
         return;
