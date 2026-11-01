@@ -10,7 +10,7 @@ const DATA = path.resolve(process.env.NEXORA_DATA_DIR || path.join(ROOT, 'nexora
 const HTML = path.join(ROOT, 'index.html');
 const PORT = Number(process.env.PORT || 4173);
 const HOST = process.env.HOST || '127.0.0.1';
-const BUILD_ID = 'nexora-cloud-gemini-v2';
+const BUILD_ID = 'nexora-cloud-gemini-v3';
 const PRESENCE_TTL = 25000;
 const MAX_BODY = 64000;
 const rooms = new Map();
@@ -272,6 +272,31 @@ async function handleCloudRoom(req, res, url, parts) {
 }
 async function handleApi(req, res, url) {
   const parts = url.pathname.split('/').filter(Boolean);
+  if (req.method === 'POST' && url.pathname === '/api/account/delete') {
+    if (!supabaseConfigured()) return json(res, 503, { error: 'Account deletion is not configured.' });
+    if (!rateLimit(req, 'account-delete', 3, 3600000)) return json(res, 429, { error: 'Please wait before retrying account deletion.' });
+    const d = await body(req);
+    const user = await supabaseUser(req);
+    if (!user?.id || !user?.email) return json(res, 401, { error: 'Sign in again to delete this account.' });
+    if (clean(d.confirmEmail, 254).toLowerCase() !== clean(user.email, 254).toLowerCase()) {
+      return json(res, 400, { error: 'The confirmation email does not match the signed-in account.' });
+    }
+    try {
+      const response = await fetch(process.env.SUPABASE_URL.replace(/\/$/, '') + '/functions/v1/delete-account', {
+        method: 'POST',
+        headers: { apikey: process.env.SUPABASE_ANON_KEY, Authorization: 'Bearer ' + bearerToken(req), 'Content-Type': 'application/json' },
+        body: '{}',
+        signal: AbortSignal.timeout(20000)
+      });
+      if (response.ok) return json(res, 200, { ok: true });
+      if (response.status === 401 || response.status === 403) return json(res, 401, { error: 'Your session expired. Sign in again and retry.' });
+      console.error('Nexora account deletion function returned:', response.status);
+      return json(res, 502, { error: 'Account deletion could not be completed. Please retry.' });
+    } catch (error) {
+      console.error('Nexora account deletion request failed:', error.name || 'Error');
+      return json(res, 502, { error: 'Account deletion could not be completed. Please retry.' });
+    }
+  }
   if (req.method === 'GET' && url.pathname === '/api/health') {
     return json(res, 200, { ok: true, buildId: BUILD_ID, aiConfigured: !!process.env.GEMINI_API_KEY, aiProvider: process.env.GEMINI_API_KEY ? 'Gemini' : null, aiModel: process.env.GEMINI_API_KEY ? MODEL : null, accountsConfigured: supabaseConfigured(), rooms: supabaseConfigured() ? 'supabase-rls-persisted' : 'live-in-memory', mentors: supabaseConfigured() ? 'supabase-rls-directory' : 'approved-directory' });
   }
@@ -487,6 +512,7 @@ const server = http.createServer(async (req, res) => {
       ['/nexora-account.js', { file: path.join(ROOT, 'nexora-account.js'), type: 'text/javascript; charset=utf-8' }],
       ['/nexora-account.css', { file: path.join(ROOT, 'nexora-account.css'), type: 'text/css; charset=utf-8' }],
       ['/privacy.html', { file: path.join(ROOT, 'privacy.html'), type: 'text/html; charset=utf-8' }],
+      ['/terms.html', { file: path.join(ROOT, 'terms.html'), type: 'text/html; charset=utf-8' }],
       ['/nexora-ai-assets/Nexora-Daily-Habit-Tracker.xlsx', { file: path.join(ROOT, 'nexora-ai-assets', 'Nexora-Daily-Habit-Tracker.xlsx'), type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }],
       ['/nexora-ai-assets/Nexora-AI-5-Slide-Deck.pptx', { file: path.join(ROOT, 'nexora-ai-assets', 'Nexora-AI-5-Slide-Deck.pptx'), type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' }]
     ]);
@@ -518,3 +544,4 @@ server.listen(PORT, HOST, () => {
 });
 process.on('SIGINT', () => server.close(() => process.exit(0)));
 process.on('SIGTERM', () => server.close(() => process.exit(0)));
+

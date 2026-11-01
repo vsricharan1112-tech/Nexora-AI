@@ -31,7 +31,7 @@
   <section>
     <h2>Accounts and cloud workspace</h2>
     <p>Supabase handles email/password authentication; Nexora does not receive or store your password. After sign-in, Nexora syncs a snapshot of supported workspace data to a private account row protected by Supabase row-level security. Supabase and its configured email provider process your email address for sign-in, verification, and password recovery. Public sign-up and recovery require the site owner to configure production email delivery.</p>
-    <p>The current app does not include a self-service account deletion button. For a cloud-data deletion request, use the support route below and ask for a private way to verify the account. Never put your email, password, recovery link, or workspace contents in a public issue.</p>
+    <p>While signed in, open the account panel and choose “Delete account &amp; cloud data.” Nexora verifies the signed-in user, deletes that Auth account, and Supabase removes linked Nexora records. Nexora also clears its local workspace in the browser where deletion was requested. Clear Nexora browser data on your other devices separately. Provider security logs and records that third parties hold remain subject to those providers’ own retention rules.</p>
   </section>
 
   <section>
@@ -51,20 +51,21 @@
     <h2>Retention and deletion</h2>
     <ul>
       <li>Browser data remains until you remove it from the browser or the app replaces it.</li>
-      <li>If cloud accounts are enabled, a synced workspace remains in your account row until it is deleted. There is no self-service cloud deletion control in this pilot.</li>
+      <li>If cloud accounts are enabled, a synced workspace remains in your account row until you delete your account using the account panel.</li>
       <li>Room messages older than seven days are removed when a room is polled. Room membership and presence are removed when a participant leaves or their session expires.</li>
-      <li>Mentor applications, approved profiles, and contact requests remain until an administrator removes or updates them. Deleting an account removes that user's linked records, but Nexora has no self-service account deletion control.</li>
+      <li>Mentor applications, approved profiles, and contact requests remain until an administrator removes or updates them, or the linked account is deleted.</li>
       <li>Third-party services retain information under their own terms and settings.</li>
     </ul>
   </section>
 
   <section>
     <h2>Support and abuse reports</h2>
-    <p>For bugs, accessibility issues, or abuse reports, use the <a href="https://github.com/vsricharan1112-tech/Nexora-AI/issues" target="_blank" rel="noopener noreferrer">Nexora GitHub issue tracker ↗</a>. GitHub issues are public. Do not post names, email addresses, passwords, reset links, private messages, school records, or screenshots containing personal details. For a private account or data request, post only a general request for a private contact method; do not identify your account publicly.</p>
-    <p>This pilot has no dedicated private support inbox or guaranteed response time. If there is an immediate safety risk, contact an appropriate trusted person or local service instead of relying on this app.</p>
+    <p>For bugs, accessibility issues, or abuse reports, use the <a href="https://github.com/vsricharan1112-tech/Nexora-AI/issues" target="_blank" rel="noopener noreferrer">Nexora support issue tracker ↗</a>. GitHub issues are public. Do not post names, email addresses, passwords, reset links, private messages, school records, or screenshots containing personal details. Account deletion is self-service in the signed-in account panel; do not post account details in a public issue.</p>
+    <p>This pilot has no private support inbox or guaranteed response time. If there is an immediate safety risk, contact an appropriate trusted person or local service instead of relying on this app.</p>
   </section>
 
-  <footer>Last updated: November 1, 2026. This notice describes the published pilot build and may change as the service is configured.</footer>
+  <footer><a href="/terms.html">Terms of use</a> · Last updated: November 1, 2026. This notice describes the published pilot build and may change as the service is configured.</footer>
 </main>
 </body>
 </html>
+

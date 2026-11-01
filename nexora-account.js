@@ -79,8 +79,14 @@
     document.querySelector('.nexora-account-tabs').classList.toggle('hidden', loggedIn || mode === 'reset' || mode === 'newpassword');
     document.querySelectorAll('[data-account-mode]').forEach(tab => tab.classList.toggle('active', tab.dataset.accountMode === mode));
     const footer = document.querySelector('#nexoraAccountFooter');
-    footer.innerHTML = loggedIn ? `<button id="nexoraSignOut" class="btn ghost" type="button">Sign out</button>` : hasCloud ? 'Your password is handled by the secure account service. Nexora never sees or stores it.' : 'Account service is waiting for setup.';
-    if (loggedIn) document.querySelector('#nexoraSignOut').onclick = signOut;
+    footer.innerHTML = (loggedIn
+      ? `<div class="nexora-account-actions"><button id="nexoraSignOut" class="btn ghost" type="button">Sign out</button><button id="nexoraDeleteAccount" class="btn ghost nexora-danger" type="button">Delete account &amp; cloud data</button></div>`
+      : hasCloud ? 'Your password is handled by the secure account service. Nexora never sees or stores it.' : 'Account service is waiting for setup.')
+      + `<div class="nexora-account-legal"><a href="/privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="/terms.html" target="_blank" rel="noopener">Terms</a> · <a href="https://github.com/vsricharan1112-tech/Nexora-AI/issues" target="_blank" rel="noopener noreferrer">Support</a></div>`;
+    if (loggedIn) {
+      document.querySelector('#nexoraSignOut').onclick = signOut;
+      document.querySelector('#nexoraDeleteAccount').onclick = deleteAccount;
+    }
     setNotice('');
   }
 
@@ -142,6 +148,42 @@
       await authRequest(`recover?redirect_to=${encodeURIComponent(location.origin + location.pathname)}`, { email });
       setNotice('If this email has an account, a password reset link is on the way.', 'success');
     } catch (error) { setNotice(error.message, 'error'); }
+  }
+
+  async function deleteAccount() {
+    const email = String(session?.user?.email || '').trim();
+    if (!email || !window.confirm('Permanently delete this Nexora account and its cloud data? This cannot be undone.')) return;
+    const confirmation = window.prompt('Type ' + email + ' to confirm account deletion.');
+    if (String(confirmation || '').trim().toLowerCase() !== email.toLowerCase()) {
+      setNotice('The confirmation email did not match. Nothing was deleted.', 'error');
+      return;
+    }
+    const button = document.querySelector('#nexoraDeleteAccount');
+    if (button) button.disabled = true;
+    setNotice('Deleting your account and cloud data…');
+    try {
+      const token = await window.NEXORA_ACCOUNT.getAccessToken();
+      const response = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ confirmEmail: String(confirmation).trim() })
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Account deletion could not be completed. Please retry.');
+      clearTimeout(syncTimer);
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key?.startsWith('nexora.')) localStorage.removeItem(key);
+      }
+      writeSession(null);
+      document.querySelector('#nexoraAccountForm')?.reset();
+      setMode('signup');
+      setNotice('Your account and cloud data were deleted. Nexora data was cleared from this browser.', 'success');
+      setTimeout(() => window.location.assign('/'), 1200);
+    } catch (error) {
+      setNotice(error.message, 'error');
+      if (button) button.disabled = false;
+    }
   }
 
   async function signOut() {
@@ -254,3 +296,4 @@
     if (!recovered && session?.access_token && hasCloud) return restoreCloud().catch(error => { writeSession(null); console.warn('Nexora account restore failed:', error.message); });
   }).catch(error => { openAccount(); setMode('reset'); setNotice(error.message, 'error'); });
 })();
+

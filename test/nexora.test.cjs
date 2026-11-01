@@ -131,6 +131,15 @@ describe('Nexora HTTP server', () => {
 before(startServer);
 after(stopServer);
 
+test('self-service deletion only uses the verified caller and a server-side admin key', () => {
+  const source = fs.readFileSync(path.join(root, 'supabase', 'functions', 'delete-account', 'index.ts'), 'utf8');
+  assert.match(source, /SUPABASE_SERVICE_ROLE_KEY/);
+  assert.match(source, /auth\/v1\/user/, 'the function verifies the bearer token with Supabase Auth');
+  assert.match(source, /auth\/v1\/admin\/users\//, 'admin deletion targets the verified user id');
+  assert.match(source, /user\.id/);
+  assert.doesNotMatch(source, /request\.json/, 'the caller cannot provide a different account id');
+});
+
 test('the public homepage and required account/static assets are served', async () => {
   const home = await fetch(`${base}/`);
   const html = await home.text();
@@ -142,8 +151,9 @@ test('the public homepage and required account/static assets are served', async 
   const accountClient = await fetch(`${base}/nexora-account.js`);
   const accountScript = await accountClient.text();
   assert.match(accountScript, /signup\?redirect_to=/, 'new accounts return to the hosted Nexora page for email verification');
+  assert.match(accountScript, /api\/account\/delete/, 'signed-in users can request account and cloud-data deletion');
 
-  for (const [url, type] of [['/nexora-account.js', /javascript/], ['/nexora-account.css', /text\/css/], ['/privacy.html', /text\/html/]]) {
+  for (const [url, type] of [['/nexora-account.js', /javascript/], ['/nexora-account.css', /text\/css/], ['/privacy.html', /text\/html/], ['/terms.html', /text\/html/]]) {
     const asset = await fetch(`${base}${url}`);
     assert.equal(asset.status, 200, `${url} is served`);
     assert.match(asset.headers.get('content-type'), type);
@@ -279,9 +289,15 @@ test('Supabase mode uses per-user bearer tokens and fails closed without sign-in
     };
     if (url.pathname === '/auth/v1/user') {
       const user = authTokens.get(bearer);
+      if (user) user.email = 'student@example.invalid';
       return user ? send(200, user) : send(401, { message: 'Invalid token' });
     }
-    if (bearer !== studentToken && bearer !== adminToken && bearer !== 'test-publishable-key') return send(401, { message: 'Invalid bearer' });
+    if (url.pathname === '/functions/v1/delete-account' && req.method === 'POST') {
+      if (!authTokens.has(bearer)) return send(401, { message: 'Invalid token' });
+      authTokens.delete(bearer);
+      return send(200, { ok: true });
+    }
+    if (!authTokens.has(bearer) && bearer !== 'test-publishable-key') return send(401, { message: 'Invalid bearer' });
     if (url.pathname === '/rest/v1/nexora_mentors' && req.method === 'GET') return send(200, []);
     if (url.pathname === '/rest/v1/nexora_room_members' && req.method === 'POST') return send(201);
     if (url.pathname === '/rest/v1/nexora_room_presence' && req.method === 'POST') return send(201);
@@ -328,9 +344,21 @@ test('Supabase mode uses per-user bearer tokens and fails closed without sign-in
     const adminReview = await jsonRequest('/api/admin/mentor-applications', { headers: { Authorization: `Bearer ${adminToken}` } });
     assert.equal(adminReview.response.status, 200);
     assert.ok(calls.some(call => call.path === '/rest/v1/nexora_mentor_applications' && call.method === 'GET' && call.bearer === adminToken));
+    const anonymousDelete = await jsonRequest('/api/account/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    assert.equal(anonymousDelete.response.status, 401);
+    const wrongEmailDelete = await jsonRequest('/api/account/delete', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + studentToken }, body: JSON.stringify({ confirmEmail: 'someone-else@example.invalid' }) });
+    assert.equal(wrongEmailDelete.response.status, 400);
+    assert.equal(calls.some(call => call.path === '/functions/v1/delete-account'), false, 'a mismatched confirmation never reaches the deletion function');
+    const deletion = await jsonRequest('/api/account/delete', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + studentToken }, body: JSON.stringify({ confirmEmail: 'STUDENT@example.invalid' }) });
+    assert.equal(deletion.response.status, 200);
+    assert.equal(deletion.value.ok, true);
+    assert.ok(calls.some(call => call.path === '/functions/v1/delete-account' && call.bearer === studentToken));
+    const deletedSession = await jsonRequest('/api/rooms/deleted-check/join', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + studentToken }, body: JSON.stringify({ id: 'testStudent_01', name: 'Deleted Student' }) });
+    assert.equal(deletedSession.response.status, 401, 'deleted accounts cannot continue using Supabase-backed features');
   } finally {
     await stopServer();
     await close(provider);
   }
 });
 });
+

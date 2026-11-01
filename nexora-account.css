@@ -22,3 +22,6 @@
 .nexora-account-foot{border-top:1px solid #e5ece7;padding-top:12px;color:#6b7971;font-size:11px;line-height:1.5}
 .nexora-account-foot .btn{margin-top:2px}
 @media(max-width:720px){.account-button{max-width:39vw}.nexora-account-card{padding:23px 19px}}
+
+.nexora-account-actions{display:flex;flex-wrap:wrap;gap:8px}.nexora-account-legal{margin-top:12px;font-size:10px}.nexora-account-legal a{color:#08744e}.nexora-danger{color:#a12635!important;border-color:#a12635!important}
+
