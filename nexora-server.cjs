@@ -1,5 +1,5 @@
 // Nexora AI local/pilot server. Node 20+; intentionally uses only built-in modules.
-// Keep OPENAI_API_KEY on the server. Never put it in the HTML or commit it.
+// Keep GEMINI_API_KEY on the server. Never put it in the HTML or commit it.
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -10,21 +10,21 @@ const DATA = path.resolve(process.env.NEXORA_DATA_DIR || path.join(ROOT, 'nexora
 const HTML = path.join(ROOT, 'index.html');
 const PORT = Number(process.env.PORT || 4173);
 const HOST = process.env.HOST || '127.0.0.1';
-const BUILD_ID = 'nexora-account-cloud-v1';
+const BUILD_ID = 'nexora-cloud-gemini-v2';
 const PRESENCE_TTL = 25000;
 const MAX_BODY = 64000;
 const rooms = new Map();
 const limits = new Map();
 
 // Optional .env support for local pilots; .env is ignored by git.
-try {
+if (process.env.NEXORA_DISABLE_DOTENV !== '1') try {
   const envFile = fs.readFileSync(path.join(ROOT, '.env'), 'utf8');
   for (const line of envFile.split(/\r?\n/)) {
     const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/);
     if (match && !process.env[match[1]]) process.env[match[1]] = match[2].replace(/^(['"])(.*)\1$/, '$2');
   }
 } catch {}
-const MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-mini';
+const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
 
 fs.mkdirSync(DATA, { recursive: true });
 for (const name of ['mentor-applications.json', 'mentors.json']) {
@@ -120,42 +120,46 @@ function citations(result) {
   }
   return [...found.values()].slice(0, 8);
 }
+function geminiAnswer(result) {
+  return (result.candidates?.[0]?.content?.parts || [])
+    .filter(part => typeof part.text === 'string')
+    .map(part => part.text.trim())
+    .filter(Boolean)
+    .join('\n\n');
+}
 async function handleApi(req, res, url) {
   const parts = url.pathname.split('/').filter(Boolean);
   if (req.method === 'GET' && url.pathname === '/api/health') {
-    return json(res, 200, { ok: true, buildId: BUILD_ID, aiConfigured: !!process.env.OPENAI_API_KEY, aiModel: process.env.OPENAI_API_KEY ? MODEL : null, accountsConfigured: !!(process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY), rooms: 'live-in-memory', mentors: 'approved-directory' });
+    return json(res, 200, { ok: true, buildId: BUILD_ID, aiConfigured: !!process.env.GEMINI_API_KEY, aiProvider: process.env.GEMINI_API_KEY ? 'Gemini' : null, aiModel: process.env.GEMINI_API_KEY ? MODEL : null, accountsConfigured: !!(process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY), rooms: 'live-in-memory', mentors: 'approved-directory' });
   }
   if (req.method === 'POST' && url.pathname === '/api/nexa') {
     if (!rateLimit(req, 'nexa', 12, 60000)) return json(res, 429, { error: 'Too many questions in a short time. Please wait a minute.' });
-    if (!process.env.OPENAI_API_KEY) return json(res, 503, { error: 'NEXA AI is not connected yet. Add an OpenAI API key to the server environment and restart Nexora.' });
+    if (!process.env.GEMINI_API_KEY) return json(res, 503, { error: 'NEXA AI is not connected yet. Add a Google AI Studio Gemini API key as GEMINI_API_KEY in Render to enable free-tier AI.' });
     const data = await body(req);
     const messages = Array.isArray(data.messages) ? data.messages.slice(-12) : [];
     const input = messages.filter(m => ['user', 'assistant'].includes(m?.role) && typeof m.content === 'string')
       .map(m => ({ role: m.role, content: clean(m.content, 4000) })).filter(m => m.content);
     if (!input.length || input[input.length - 1].role !== 'user') return json(res, 400, { error: 'Ask a question to continue.' });
     try {
-      const upstream = await fetch('https://api.openai.com/v1/responses', {
+      const upstream = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(MODEL)}:generateContent`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
+        headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY, 'Content-Type': 'application/json' },
         signal: AbortSignal.timeout(60000),
         body: JSON.stringify({
-          model: MODEL,
-          instructions: 'You are NEXA AI, a careful and encouraging study and opportunity assistant. Explain clearly at the student’s level, show steps for academic questions, ask a brief clarifying question when needed, distinguish verified facts from estimates, cite web sources when web search is used, and never promise admission, scholarships, eligibility, ranks, or outcomes. For time-sensitive questions use web search and cite official sources when available. Do not request sensitive personal information unless essential. Keep answers useful and direct.',
-          tools: [{ type: 'web_search' }],
-          input,
-          max_output_tokens: 900,
-          store: false
+          systemInstruction: { parts: [{ text: 'You are NEXA AI, a careful and encouraging study and opportunity assistant. Explain clearly at the student’s level, show steps for academic questions, ask a brief clarifying question when needed, distinguish verified facts from estimates, and never promise admission, scholarships, eligibility, ranks, or outcomes. Do not request sensitive personal information unless essential. Keep answers useful and direct. Your knowledge may be out of date; direct students to verify time-sensitive information with official sources.' }] },
+          contents: input.map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
+          generationConfig: { maxOutputTokens: 900, temperature: 0.6 }
         })
       });
       const result = await upstream.json().catch(() => ({}));
       if (!upstream.ok) {
-        console.error('NEXA provider error:', upstream.status, result?.error?.code || result?.error?.type || 'unknown');
+        console.error('NEXA provider error:', upstream.status, result?.error?.status || 'unknown');
         const status = upstream.status === 429 ? 429 : 502;
         return json(res, status, { error: upstream.status === 429 ? 'NEXA is busy or the API limit was reached. Please try again shortly.' : 'NEXA could not complete that answer. Check the server AI setup and try again.' });
       }
-      const text = outputText(result);
+      const text = geminiAnswer(result);
       if (!text) return json(res, 502, { error: 'NEXA returned no answer. Please try again.' });
-      return json(res, 200, { text, sources: citations(result), model: MODEL });
+      return json(res, 200, { text, sources: [], model: MODEL, provider: 'Gemini' });
     } catch (error) {
       console.error('NEXA request failed:', error.name || 'Error');
       return json(res, 502, { error: 'NEXA could not reach the AI service. Check the server connection and try again.' });
@@ -284,7 +288,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, HOST, () => {
   const accessHost = HOST === '0.0.0.0' ? '<server-ip>' : HOST;
   console.log(`Nexora is available at http://${accessHost}:${PORT}/`);
-  console.log(`NEXA AI: ${process.env.OPENAI_API_KEY ? `connected (${MODEL})` : 'not configured; add OPENAI_API_KEY to enable real answers'}`);
+  console.log(`NEXA AI: ${process.env.GEMINI_API_KEY ? `connected (${MODEL})` : 'not configured; add GEMINI_API_KEY to enable free-tier answers'}`);
   console.log('Live room presence and approved mentor directory are enabled.');
 });
 process.on('SIGINT', () => server.close(() => process.exit(0)));

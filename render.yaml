@@ -9,5 +9,11 @@ services:
     envVars:
       - key: HOST
         value: 0.0.0.0
-      - key: OPENAI_MODEL
-        value: gpt-4.1-mini
+      - key: SUPABASE_URL
+        value: https://ourtukxcjmisguxviulg.supabase.co
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash-lite

@@ -3,6 +3,5 @@
   "version": "1.0.0",
   "private": true,
   "engines": { "node": ">=20" },
-  "scripts": { "start": "node nexora-server.cjs" }
+  "scripts": { "start": "node nexora-server.cjs", "test": "node --test" }
 }
-
