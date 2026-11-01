@@ -24,7 +24,7 @@ if (process.env.NEXORA_DISABLE_DOTENV !== '1') try {
     if (match && !process.env[match[1]]) process.env[match[1]] = match[2].replace(/^(['"])(.*)\1$/, '$2');
   }
 } catch {}
-const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
+const MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
 
 fs.mkdirSync(DATA, { recursive: true });
 for (const name of ['mentor-applications.json', 'mentors.json']) {

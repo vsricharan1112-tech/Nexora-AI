@@ -188,7 +188,7 @@ test('NEXA sends the last 12 turns to Gemini and returns its answer without expo
   assert.equal(response.status, 200);
   assert.equal(value.text, 'Mock Gemini answer');
   assert.equal(value.provider, 'Gemini');
-  assert.equal(value.model, 'gemini-2.5-flash-lite');
+  assert.equal(value.model, 'gemini-3.5-flash-lite');
   assert.doesNotMatch(JSON.stringify(value), /test-only-gemini-key/);
   const health = await jsonRequest('/api/health');
   assert.equal(health.value.aiConfigured, true);

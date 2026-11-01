@@ -9,7 +9,7 @@ globalThis.fetch = async (input, options = {}) => {
   const request = JSON.parse(options.body || '{}');
   const contents = request.contents || [];
   const valid = headers['x-goog-api-key'] === 'test-only-gemini-key'
-    && url.endsWith('/models/gemini-2.5-flash-lite:generateContent')
+    && url.endsWith('/models/gemini-3.5-flash-lite:generateContent')
     && request.systemInstruction?.parts?.length > 0
     && contents.length === 12
     && contents[0].role === 'model'
