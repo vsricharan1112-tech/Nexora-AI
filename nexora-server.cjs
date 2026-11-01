@@ -10,9 +10,9 @@ const DATA = path.resolve(process.env.NEXORA_DATA_DIR || path.join(ROOT, 'nexora
 const HTML = path.join(ROOT, 'index.html');
 const PORT = Number(process.env.PORT || 4173);
 const HOST = process.env.HOST || '127.0.0.1';
-const BUILD_ID = 'nexora-public-pilot-v2';
+const BUILD_ID = 'nexora-public-pilot-v3';
 const PRESENCE_TTL = 25000;
-const MAX_BODY = 24000;
+const MAX_BODY = 64000;
 const rooms = new Map();
 const limits = new Map();
 
