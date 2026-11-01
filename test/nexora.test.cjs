@@ -320,7 +320,7 @@ test('Supabase mode uses per-user bearer tokens and fails closed without sign-in
 
     const application = await jsonRequest('/api/mentors/apply', {
       method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${studentToken}` },
-      body: JSON.stringify({ name: 'Cloud Student', email: 'cloud@example.invalid', institution: 'Test College', year: '1st year', topics: 'Math', bio: 'Test profile.', availability: 'Weekends', publicContact: true })
+      body: JSON.stringify({ name: 'Cloud Student', email: 'cloud@example.invalid', institution: 'Test College', year: '1st year', topics: 'Math', availability: 'Weekends', publicContact: true })
     });
     assert.equal(application.response.status, 201);
     assert.ok(calls.some(call => call.path === '/rest/v1/nexora_mentor_applications' && call.method === 'POST' && call.bearer === studentToken));

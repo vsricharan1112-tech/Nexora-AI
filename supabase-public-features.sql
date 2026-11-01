@@ -52,7 +52,7 @@ create table if not exists public.nexora_mentor_applications (
   institution text not null check (char_length(institution) between 1 and 100),
   year text not null check (char_length(year) between 1 and 50),
   topics text not null check (char_length(topics) between 1 and 180),
-  bio text not null check (char_length(bio) between 1 and 320),
+  bio text not null check (char_length(bio) between 0 and 320),
   availability text not null check (char_length(availability) between 1 and 120),
   status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
   created_at timestamptz not null default now()
@@ -72,7 +72,7 @@ create table if not exists public.nexora_mentors (
   institution text not null check (char_length(institution) between 1 and 100),
   year text not null check (char_length(year) between 1 and 50),
   topics text not null check (char_length(topics) between 1 and 180),
-  bio text not null check (char_length(bio) between 1 and 320),
+  bio text not null check (char_length(bio) between 0 and 320),
   availability text not null check (char_length(availability) between 1 and 120),
   status text not null default 'approved' check (status in ('approved', 'hidden')),
   created_at timestamptz not null default now()
