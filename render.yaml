@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: nexora-ai
+    runtime: node
+    plan: free
+    buildCommand: npm install --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: OPENAI_MODEL
+        value: gpt-6-luna
+
