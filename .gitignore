@@ -1,0 +1,7 @@
+.env
+node_modules/
+nexora-data/
+*.log
+*.inspect.ndjson
+work/
+
