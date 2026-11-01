@@ -10,5 +10,4 @@ services:
       - key: HOST
         value: 0.0.0.0
       - key: OPENAI_MODEL
-        value: gpt-6-luna
-
+        value: gpt-4.1-mini

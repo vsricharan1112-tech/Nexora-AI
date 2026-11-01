@@ -32,7 +32,7 @@ let who=rd('profile','Student'),page='today',tasks=rd('tasks',[{id:'t1',title:'R
 function say(s){let t=document.querySelector('#toast');t.textContent=s;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200)}
 const serverAvailable=()=>location.protocol==='http:'||location.protocol==='https:';
 async function apiJson(url,options={}){
- if(!serverAvailable())throw new Error('Start Nexora with Start-Nexora.ps1 to connect its live services.');
+ if(!serverAvailable())throw new Error('Start the local Nexora server with Start-Nexora.bat, then open http://127.0.0.1:4173/.');
  const response=await fetch(url,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}});
  const data=await response.json().catch(()=>({error:'The server returned an unreadable response.'}));
  if(!response.ok)throw new Error(data.error||'The live service could not complete that request.');
@@ -88,6 +88,5 @@ const edit=document.createElement('button');edit.className='btn ghost small';edi
 document.querySelector('#quickTask').onclick=()=>{show('planner');setTimeout(()=>document.querySelector('#taskForm input[name="title"]')?.focus(),0)};document.querySelector('#search').onkeydown=e=>{if(e.key==='Enter'&&e.currentTarget.value.trim()){save('query',e.currentTarget.value.trim());show('learn')}};
 show('today');
 </script></body></html>
-
 
 

@@ -10,7 +10,7 @@ const DATA = path.resolve(process.env.NEXORA_DATA_DIR || path.join(ROOT, 'nexora
 const HTML = path.join(ROOT, 'index.html');
 const PORT = Number(process.env.PORT || 4173);
 const HOST = process.env.HOST || '127.0.0.1';
-const BUILD_ID = 'nexora-local-pilot-stable-4173-v1';
+const BUILD_ID = 'nexora-public-pilot-v2';
 const PRESENCE_TTL = 25000;
 const MAX_BODY = 24000;
 const rooms = new Map();
@@ -24,7 +24,7 @@ try {
     if (match && !process.env[match[1]]) process.env[match[1]] = match[2].replace(/^(['"])(.*)\1$/, '$2');
   }
 } catch {}
-const MODEL = process.env.OPENAI_MODEL || 'gpt-6-luna';
+const MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-mini';
 
 fs.mkdirSync(DATA, { recursive: true });
 for (const name of ['mentor-applications.json', 'mentors.json']) {
@@ -48,13 +48,14 @@ function readArray(name) {
 }
 function writeArray(name, value) {
   const target = path.join(DATA, name);
-  const tmp = target + '.tmp';
+  const tmp = `${target}.${process.pid}.${crypto.randomUUID()}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify(value, null, 2) + '\n', { mode: 0o600 });
   fs.renameSync(tmp, target);
 }
 function clean(value, max = 240) { return String(value ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, max); }
 function rateLimit(req, key, max = 40, windowMs = 60000) {
-  const ip = req.socket.remoteAddress || 'unknown';
+  // Render routes requests through Cloudflare; CF-Connecting-IP is the client IP.
+  const ip = String(req.headers['cf-connecting-ip'] || req.socket.remoteAddress || 'unknown').trim().slice(0, 64);
   const now = Date.now();
   const id = `${ip}:${key}`;
   let item = limits.get(id);
@@ -63,6 +64,11 @@ function rateLimit(req, key, max = 40, windowMs = 60000) {
   limits.set(id, item);
   return item.count <= max;
 }
+const rateLimitCleanup = setInterval(() => {
+  const now = Date.now();
+  for (const [id, item] of limits) if (now - item.start > 3600000) limits.delete(id);
+}, 300000);
+rateLimitCleanup.unref();
 async function body(req) {
   let raw = '';
   for await (const chunk of req) {
@@ -279,4 +285,3 @@ server.listen(PORT, HOST, () => {
 });
 process.on('SIGINT', () => server.close(() => process.exit(0)));
 process.on('SIGTERM', () => server.close(() => process.exit(0)));
-
