@@ -68,14 +68,15 @@
     form.dataset.mode = mode;
     const loggedIn = mode === 'account' && !!session?.user?.email;
     form.classList.toggle('hidden', loggedIn);
-    document.querySelector('#nexoraAccountTitle').textContent = loggedIn ? 'Your account' : mode === 'login' ? 'Welcome back' : mode === 'reset' ? 'Reset your password' : 'Save your workspace';
-    document.querySelector('#nexoraAccountIntro').textContent = loggedIn ? `Signed in as ${session.user.email}.` : mode === 'login' ? 'Sign in to restore and sync your Nexora workspace.' : mode === 'reset' ? 'We will send a password reset link to your email.' : 'Create an account to sync your plans and progress across devices.';
-    document.querySelector('#nexoraAccountSubmit').textContent = mode === 'login' ? 'Sign in' : mode === 'reset' ? 'Send reset link' : 'Create account';
+    document.querySelector('#nexoraAccountTitle').textContent = loggedIn ? 'Your account' : mode === 'login' ? 'Welcome back' : mode === 'reset' ? 'Reset your password' : mode === 'newpassword' ? 'Choose a new password' : 'Save your workspace';
+    document.querySelector('#nexoraAccountIntro').textContent = loggedIn ? `Signed in as ${session.user.email}.` : mode === 'login' ? 'Sign in to restore and sync your Nexora workspace.' : mode === 'reset' ? 'We will send a password reset link to your email.' : mode === 'newpassword' ? 'Set a new password to finish recovering your account.' : 'Create an account to sync your plans and progress across devices.';
+    document.querySelector('#nexoraAccountSubmit').textContent = mode === 'login' ? 'Sign in' : mode === 'reset' ? 'Send reset link' : mode === 'newpassword' ? 'Save new password' : 'Create account';
     document.querySelector('#nexoraPasswordLabel').classList.toggle('hidden', mode === 'reset');
-    form.elements.password.required = mode !== 'reset';
+    form.elements.password.required = mode !== 'reset' && !loggedIn;
     form.elements.password.autocomplete = mode === 'login' ? 'current-password' : 'new-password';
+    form.elements.password.placeholder = mode === 'newpassword' ? 'New password (at least 8 characters)' : '';
     document.querySelector('#nexoraForgot').classList.toggle('hidden', mode !== 'login');
-    document.querySelector('.nexora-account-tabs').classList.toggle('hidden', loggedIn || mode === 'reset');
+    document.querySelector('.nexora-account-tabs').classList.toggle('hidden', loggedIn || mode === 'reset' || mode === 'newpassword');
     document.querySelectorAll('[data-account-mode]').forEach(tab => tab.classList.toggle('active', tab.dataset.accountMode === mode));
     const footer = document.querySelector('#nexoraAccountFooter');
     footer.innerHTML = loggedIn ? `<button id="nexoraSignOut" class="btn ghost" type="button">Sign out</button>` : hasCloud ? 'Your password is handled by the secure account service. Nexora never sees or stores it.' : 'Account service is waiting for setup.';
@@ -110,6 +111,15 @@
         setNotice('If this email has an account, a password reset link is on the way.', 'success');
         return;
       }
+      if (mode === 'newpassword') {
+        const response = await fetch(`${base}/auth/v1/user`, { method: 'PUT', headers: { 'Content-Type': 'application/json', apikey: anon, Authorization: `Bearer ${session?.access_token || ''}` }, body: JSON.stringify({ password }) });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.msg || result.message || 'Could not update the password. Request a new reset link and try again.');
+        writeSession({ ...session, user: result });
+        await restoreCloud();
+        setMode('account'); setNotice('Password updated. You are signed in.', 'success');
+        return;
+      }
       const result = await authRequest(mode === 'login' ? 'token?grant_type=password' : 'signup', { email, password });
       if (!result.access_token) {
         setNotice('Check your email for the verification link, then return here and sign in.', 'success');
@@ -142,6 +152,20 @@
     if (!session?.refresh_token) throw new Error('Your sign-in expired. Please sign in again.');
     const updated = await authRequest('token?grant_type=refresh_token', { refresh_token: session.refresh_token });
     writeSession(updated); return updated.access_token;
+  }
+
+  async function finishPasswordRecovery() {
+    if (!hasCloud) return false;
+    const values = new URLSearchParams(location.hash.replace(/^#/, ''));
+    if (values.get('type') !== 'recovery' || !values.get('access_token')) return false;
+    const recovery = { access_token: values.get('access_token'), refresh_token: values.get('refresh_token') || '' };
+    const response = await fetch(`${base}/auth/v1/user`, { headers: { apikey: anon, Authorization: `Bearer ${recovery.access_token}` } });
+    const user = await response.json().catch(() => ({}));
+    if (!response.ok || !user.id) throw new Error('That password reset link expired. Request a new one and try again.');
+    writeSession({ ...recovery, user });
+    history.replaceState(null, '', location.pathname + location.search);
+    openAccount(); setMode('newpassword'); setNotice('Choose a new password to finish account recovery.');
+    return true;
   }
 
   async function cloudRequest(url, options = {}, retried = false) {
@@ -212,5 +236,7 @@
   }
 
   addStyles(); addAccountUi(); installSyncHook();
-  if (session?.access_token && hasCloud) restoreCloud().catch(error => { writeSession(null); console.warn('Nexora account restore failed:', error.message); });
+  finishPasswordRecovery().then(recovered => {
+    if (!recovered && session?.access_token && hasCloud) return restoreCloud().catch(error => { writeSession(null); console.warn('Nexora account restore failed:', error.message); });
+  }).catch(error => { openAccount(); setMode('reset'); setNotice(error.message, 'error'); });
 })();
