@@ -1,0 +1,24 @@
+.account-button{max-width:min(31vw,260px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#e4fff4;color:#073322;border:1px solid #78d7ad}
+.account-button.account-connected{background:#c4f5df}
+.nexora-account-overlay{position:fixed;inset:0;z-index:1000;background:rgba(5,14,10,.72);display:grid;place-items:center;padding:18px;backdrop-filter:blur(5px)}
+.nexora-account-overlay.hidden{display:none}
+.nexora-account-card{position:relative;width:min(100%,430px);max-height:min(90vh,720px);overflow:auto;padding:28px;border-radius:24px;background:#fff;color:#17231e;box-shadow:0 24px 80px #0005}
+.nexora-account-card h2{margin:4px 0 6px;font-size:25px;letter-spacing:-.5px}
+.nexora-account-card p{margin:0 0 17px;color:#607167;font-size:13px}
+.nexora-account-mark{width:42px;height:42px;border-radius:15px 8px;background:linear-gradient(140deg,#7af3c2,#00aa78);display:grid;place-items:center;color:#052019;font-size:22px;font-weight:900;margin-bottom:12px}
+.nexora-account-kicker{font-size:10px;letter-spacing:1.4px;color:#16885e;font-weight:850}
+.nexora-account-close{position:absolute;top:15px;right:16px;border:0;background:#f0f5f1;border-radius:50%;width:34px;height:34px;font-size:23px;color:#395549}
+.nexora-account-tabs{display:grid;grid-template-columns:1fr 1fr;gap:7px;background:#f1f6f3;border-radius:12px;padding:4px;margin:15px 0}
+.nexora-account-tabs button{border:0;border-radius:9px;padding:9px;background:transparent;color:#607167;font-weight:750}
+.nexora-account-tabs button.active{background:#fff;color:#08744e;box-shadow:0 1px 5px #12261a18}
+#nexoraAccountForm{display:grid;gap:11px}
+#nexoraAccountForm label{display:grid;gap:5px;font-weight:750;font-size:12px}
+#nexoraAccountForm input{width:100%;border:1px solid #ccd9d0;background:#fff;color:#17231e;border-radius:10px;padding:11px;font-size:14px}
+#nexoraAccountForm .btn{font-size:13px;padding:11px}
+.nexora-link-button{border:0;background:transparent;color:#08744e;text-decoration:underline;font-size:12px;justify-self:center;padding:5px}
+#nexoraAccountNotice{min-height:20px;margin-top:12px;color:#485a50;font-size:12px;line-height:1.5}
+#nexoraAccountNotice[data-kind=error]{color:#ad3340}
+#nexoraAccountNotice[data-kind=success]{color:#08744e}
+.nexora-account-foot{border-top:1px solid #e5ece7;padding-top:12px;color:#6b7971;font-size:11px;line-height:1.5}
+.nexora-account-foot .btn{margin-top:2px}
+@media(max-width:720px){.account-button{max-width:39vw}.nexora-account-card{padding:23px 19px}}

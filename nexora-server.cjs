@@ -10,7 +10,7 @@ const DATA = path.resolve(process.env.NEXORA_DATA_DIR || path.join(ROOT, 'nexora
 const HTML = path.join(ROOT, 'index.html');
 const PORT = Number(process.env.PORT || 4173);
 const HOST = process.env.HOST || '127.0.0.1';
-const BUILD_ID = 'nexora-public-pilot-v3';
+const BUILD_ID = 'nexora-account-cloud-v1';
 const PRESENCE_TTL = 25000;
 const MAX_BODY = 64000;
 const rooms = new Map();
@@ -123,7 +123,7 @@ function citations(result) {
 async function handleApi(req, res, url) {
   const parts = url.pathname.split('/').filter(Boolean);
   if (req.method === 'GET' && url.pathname === '/api/health') {
-    return json(res, 200, { ok: true, buildId: BUILD_ID, aiConfigured: !!process.env.OPENAI_API_KEY, aiModel: process.env.OPENAI_API_KEY ? MODEL : null, rooms: 'live-in-memory', mentors: 'approved-directory' });
+    return json(res, 200, { ok: true, buildId: BUILD_ID, aiConfigured: !!process.env.OPENAI_API_KEY, aiModel: process.env.OPENAI_API_KEY ? MODEL : null, accountsConfigured: !!(process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY), rooms: 'live-in-memory', mentors: 'approved-directory' });
   }
   if (req.method === 'POST' && url.pathname === '/api/nexa') {
     if (!rateLimit(req, 'nexa', 12, 60000)) return json(res, 429, { error: 'Too many questions in a short time. Please wait a minute.' });
@@ -256,6 +256,8 @@ const server = http.createServer(async (req, res) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405); return res.end('Method not allowed'); }
     const accepted = new Set(['/', '/index.html', '/NEXORA%20-%20AI%20PROTOTYPE%20FINAL.html', '/Nexora-AI-Prototype.html']);
     const staticAssets = new Map([
+      ['/nexora-account.js', { file: path.join(ROOT, 'nexora-account.js'), type: 'text/javascript; charset=utf-8' }],
+      ['/nexora-account.css', { file: path.join(ROOT, 'nexora-account.css'), type: 'text/css; charset=utf-8' }],
       ['/nexora-ai-assets/Nexora-Daily-Habit-Tracker.xlsx', { file: path.join(ROOT, 'nexora-ai-assets', 'Nexora-Daily-Habit-Tracker.xlsx'), type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }],
       ['/nexora-ai-assets/Nexora-AI-5-Slide-Deck.pptx', { file: path.join(ROOT, 'nexora-ai-assets', 'Nexora-AI-5-Slide-Deck.pptx'), type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' }]
     ]);
@@ -270,7 +272,9 @@ const server = http.createServer(async (req, res) => {
     if (!fs.existsSync(HTML)) { res.writeHead(500); return res.end('Nexora HTML file is missing.'); }
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'strict-origin-when-cross-origin' });
     if (req.method === 'HEAD') return res.end();
-    fs.createReadStream(HTML).pipe(res);
+    const publicConfig = JSON.stringify({ supabaseUrl: process.env.SUPABASE_URL || '', anonKey: process.env.SUPABASE_ANON_KEY || '' }).replace(/</g, '\\u003c');
+    const document = fs.readFileSync(HTML, 'utf8').replace('</body>', `<script>window.NEXORA_CONFIG=${publicConfig}</script><script defer src="/nexora-account.js"></script></body>`);
+    res.end(document);
   } catch (error) {
     console.error('Request error:', error.name || 'Error');
     if (!res.headersSent) json(res, error.status || 500, { error: error.status ? error.message : 'Server error. Please retry.' });
